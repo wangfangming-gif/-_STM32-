@@ -68,4 +68,5 @@
 ..\..\output\timer.o: ..\..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_pcd_ex.h
 ..\..\output\timer.o: ..\..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_hcd.h
 ..\..\output\timer.o: ..\..\Drivers\CMSIS\Include\core_cm4.h
+..\..\output\timer.o: ..\..\Drivers\./BSP/Key/Key.h
 ..\..\output\timer.o: ..\..\Drivers\./BSP/MY_USART/usart_test.h

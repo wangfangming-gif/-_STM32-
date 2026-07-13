@@ -54,10 +54,12 @@ int main(void)
 	Timer6_Init();
 	Light_Init();		//初始化光强
 	key_gpio_init();	//初始化按键
+	key_soft_init();
 
 	//注册回调函数
 	Timer6_RegisterTask(Light_TimerCallback,100);
 	Timer6_RegisterTask(DHT11_StartCapture_Callback,100);
+	Timer6_RegisterTask(bsp_key_10ms_scan,1);
 
 	//我想下哈，肯定先从简单的来，首先就是按键的编写，然后是串口的修改。
 	//接下来开始扫描的程序的编写
@@ -65,34 +67,9 @@ int main(void)
 	while (1)
 	{
 		// modbus_handle();
-		// Light_Handle();
+//		 Light_Handle();
 		// DHT11_Loop_Handle();
 
-		Temp_key_state = HAL_GPIO_ReadPin(GPIOE,GPIO_PIN_2);
-
-		if(Temp_key_state != key_current_state)	//如果状态发生改变的话
-		{
-			HAL_Delay(10);		//等待10ms
-			Temp_key_state = HAL_GPIO_ReadPin(GPIOE,GPIO_PIN_2);	//再次读取一次状态
-			if(Temp_key_state != key_current_state)			//状态发生改变
-			{
-				if(Temp_key_state == GPIO_PIN_RESET)	//按下状态
-				{
-					temp_printf_count = sprintf((char *)temp_printf_buffer,"Key_down!\r\n");
-					my_usart_transmit_data(temp_printf_buffer,temp_printf_count);
-				}
-				else 	//释放状态
-				{
-					temp_printf_count = sprintf((char *)temp_printf_buffer,"Key_up!\r\n");
-					my_usart_transmit_data(temp_printf_buffer,temp_printf_count);
-				}
-				key_current_state = Temp_key_state;
-			}
-			else
-			{
-				
-			}
-		}
 	}
 }
 

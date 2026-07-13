@@ -28,38 +28,42 @@
 
 typedef enum 
 {
-    key_state_idle,           //空闲状态
-    key_state_debounce_down,  //按下消抖状态
-    key_state_pressed,        //按下状态
-    key_state_debounce_up,    //释放消抖状态
-    key_state_wait_doube,     //等待双击
+	key_state_none = 1,		//无
+	key_state_down = 1<<1,		//按下
+	key_state_up = 1<<2,			//弹起
+	key_state_click = 1<<3,	//点击
+	key_state_double_click = 1<<4,		//双击
 }key_state;
 
-typedef enum 
+typedef enum
 {
-    key_event_down,     //按下事件
-    key_event_up,       //抬起事件
-    key_event_click,    //点击事件
-    key_event_double_click,     //双击事件
-}key_event_state;
+	key_pin_down,
+	key_pin_up,
+}key_pin_state;
 
-typedef struct key_soft_param_struct
+typedef struct
 {
-    key_state state;           //按键状态
-    key_event_state event;     //按键事件
+	GPIO_TypeDef * key_port;
+	uint16_t key_gpio_pin;
+	uint8_t key_gpio_state;
+	uint8_t key_activate_power;
 
-    uint16_t debounce_count;        //消抖次数
-    uint16_t debounce_threshold;    //消抖阈值
-    
-    uint32_t click_count;           //点击次数
-    uint16_t double_wait_tick;      //双击等待事件
-    uint16_t double_wait_threshold; //双击触发阈值
-}key_soft_param;
+	uint8_t key_current_state;					//当前按键状态
+	key_pin_state key_current_pin_state;	//当前按键的电平状态
+	
+	uint8_t key_debounce_count;				//消抖次数
+	uint8_t key_debounce_threshold;		//消抖阈值
+
+	uint8_t key_double_state;					//按键状态，1代表按下一次，0代表按下0次
+	uint8_t key_double_debounce_count;			//双击间隔计数
+	uint8_t key_double_debounce_threhold;		//双击最大间隔
+}key_struct_params;
+
 
 
 void key_gpio_init(void);
 void key_soft_init(void);
-void key_10ms_scan(void);
+void bsp_key_10ms_scan(void);
 
 
 #endif

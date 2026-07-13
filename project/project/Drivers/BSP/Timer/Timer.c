@@ -1,4 +1,5 @@
 #include "./BSP/Timer/Timer.h"
+#include "./BSP/Key/Key.h"
 #include "./BSP/MY_USART/usart_test.h"
 
 extern volatile uint8_t flag_timer6_done;
@@ -119,13 +120,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	// static uint16_t temp_tim6_count = 0;
 	if(htim->Instance == TIM6)	//如果是定时器6的话
 	{
-		// temp_tim6_count++;
-		// if(temp_tim6_count >= 200)	//2秒一次
-		// {
-		// 	temp_tim6_count = 0;
-		// 	flag_timer6_done = 1;
-		// }
-
 		for(i=0;i<TIMER6_TASK_MAX;i++)
 		{
 			if(timer6_task[i].enable == 0)

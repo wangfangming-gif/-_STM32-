@@ -23,12 +23,31 @@
  */
  
 #include "./BSP/Key/Key.h"
+#include "./BSP/MY_USART/usart_test.h"
 
-//按键参数
-key_soft_param key_params[3];
 
+#include <stdio.h>
+
+
+#define MAX_DOUBLE_THRESHOLD 50					//按键双击间隔
+#define MAX_SIGNAL_DEBOUNCE_THRESHOLD 3	//消抖间隔
+#define KEY_NUMBER 3
 
 GPIO_InitTypeDef led_gpio_init_struct;
+
+
+static uint8_t key_temp_printf_buffer[30];
+uint8_t key_temp_printf_count = 0;
+
+
+//按键参数结构体初始化
+key_struct_params key_params[KEY_NUMBER];
+
+
+static uint8_t get_key_state(uint8_t index);
+static uint8_t read_key_down_state(uint8_t index);
+
+
 
 //初始化一下KEY的GPIO引脚
 void key_gpio_init(void)
@@ -46,82 +65,183 @@ void key_gpio_init(void)
  */
 void key_soft_init(void)
 {
-    //首先来对按键的参数进行初始化。
-    key_params[0].state = key_state_idle;       //空闲状态
-    key_params[0].event = key_event_down;       //无事件
-    key_params[0].debounce_count = 0;           //消抖次数
-    key_params[0].debounce_threshold = 3;       //消抖阈值
-    key_params[0].click_count = 0;              //点击次数  
-    key_params[0].double_wait_tick = 0;         //二次点击时间
-    key_params[0].double_wait_threshold = 50;   //二次点击时间间隔阈值
-}
+	key_params[0].key_port = GPIOE;
+	key_params[0].key_gpio_pin = GPIO_PIN_4;
+	key_params[0].key_activate_power = GPIO_PIN_RESET;		//按下是低电平
 
-/**
- * 每隔10ms的扫描，扫描当前的
- */
-void key_10ms_scan(void)
-{
-    
-}
+	key_params[0].key_current_state = key_state_none;					//当前按键状态
+	key_params[0].key_current_pin_state = key_pin_up;	//当前按键的电平状态
 
-//状态机事件处理，感觉好麻烦的样子
-//事件处理
-void handle_event(uint8_t index,key_event_state temp_event)
-{
-    //根据状态来写处理事件
-    switch(key_params[index].state)
-    {
-        case key_state_idle:
-            handle_key_idle(index,temp_event);
-            break;
-        case key_state_debounce_down:
-            handle_key_debounce_down(index,temp_event);
-            break;
-        case key_state_pressed:
-            handle_key_pressed(index,temp_event);
-            break;
-        case key_state_debounce_up:
-            handle_key_debounce_up(index,temp_event);
-            break;
-        case key_state_wait_doube:
-            handle_key_wait_doube(index,temp_event);
-            break;        
-    }
-}
+	key_params[0].key_debounce_count = 0;				//消抖次数
+	key_params[0].key_debounce_threshold = MAX_SIGNAL_DEBOUNCE_THRESHOLD;		//消抖阈值
 
-//处理空闲状态
-static void handle_key_idle(uint8_t index,key_event_state temp_event)
-{
-    if(temp_event == key_event_up)      //如果还是抬起状态的话，那么就不需要处理  
-    {
-
-    }
-    else
-    {
-    }
-}
-
-//处理按下消抖状态
-static void handle_key_debounce_down(uint8_t index,key_event_state temp_event)
-{
+	key_params[0].key_double_state = 0;					//按键状态，1代表按下一次，0代表按下0次
+	key_params[0].key_double_debounce_count = 0;			//双击间隔计数
+	key_params[0].key_double_debounce_threhold = MAX_DOUBLE_THRESHOLD;		//双击最大间隔
 
 }
 
-//处理按键按下状态
-static void handle_key_pressed(uint8_t index,key_event_state temp_event)
+/*
+	获得当前按下状态，1代表按下，0代表释放，-1代表错误
+*/
+static uint8_t read_key_down_state(uint8_t index)
 {
-
+	uint8_t temp_state = HAL_GPIO_ReadPin(key_params[index].key_port,
+																				key_params[index].key_gpio_pin);
+	if(key_params[index].key_activate_power == GPIO_PIN_RESET)		//如果按下之后是低电平
+	{
+		if(temp_state == GPIO_PIN_RESET)
+		{
+			return 1;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	else			//如果按下之后是高电平
+	{
+		if(temp_state == GPIO_PIN_RESET)	
+		{
+			return 0;
+		}
+		else
+		{
+			return 1;
+		}
+	}
 }
 
-//处理按键释放消抖状态
-static void handle_key_debounce_up(uint8_t index,key_event_state temp_event)
+/*
+	在定时函数中，10ms扫描一次
+*/
+void bsp_key_10ms_scan(void)
 {
 
+	uint8_t my_key_state = 0;
+	my_key_state = get_key_state(0);
+
+	if(my_key_state & key_state_down)	//按下
+	{
+		key_params[0].key_current_state &= ~key_state_down;
+
+		key_temp_printf_count = sprintf((char *)key_temp_printf_buffer,
+			"KEY0_Down\r\n");
+		my_usart_transmit_data(key_temp_printf_buffer,key_temp_printf_count);
+	}
+	else if(my_key_state & key_state_up)	//弹起
+	{
+		key_params[0].key_current_state &= ~key_state_up;
+
+		key_temp_printf_count = sprintf((char *)key_temp_printf_buffer,
+			"KEY0_UP\r\n");
+		my_usart_transmit_data(key_temp_printf_buffer,key_temp_printf_count);
+	}
+	else if(my_key_state & key_state_click)	//点击
+	{
+		key_params[0].key_current_state &= ~key_state_click;
+		
+		key_temp_printf_count = sprintf((char *)key_temp_printf_buffer,
+			"KEY0_CLICK\r\n");
+		my_usart_transmit_data(key_temp_printf_buffer,key_temp_printf_count);
+
+	}
+	else if(my_key_state & key_state_double_click)	//双击
+	{
+		key_params[0].key_current_state &= ~key_state_double_click;
+		key_temp_printf_count = sprintf((char *)key_temp_printf_buffer,
+			"KEY0_D_CLICK\r\n");
+		my_usart_transmit_data(key_temp_printf_buffer,key_temp_printf_count);
+	}
 }
 
-//处理按键等待双击状态
-static void handle_key_wait_doube(uint8_t index,key_event_state temp_event)
+/*
+	获取key的状态
+*/
+static uint8_t get_key_state(uint8_t index)
 {
+	uint8_t temp_state = read_key_down_state(index);
+	static uint8_t temp_state_pre = 0;
 
 
+	if(temp_state == 1)	//如果是按下状态的话
+	{
+		if(temp_state_pre == 1)		//如果之前也是按下状态的话
+		{
+			key_params[index].key_debounce_count++;				//消抖次数++
+			if(key_params[index].key_debounce_count >= key_params[index].key_debounce_threshold)
+			{
+				key_params[index].key_debounce_count = 0;
+				key_params[index].key_current_state |= key_state_down;		//按下
+
+				key_params[index].key_current_state &= ~key_state_none;		//消除空闲状态
+			}			
+		}
+		else	//如果之前不是按下状态
+		{
+			key_params[index].key_debounce_count = 0;				//消抖次数++
+		}
+		temp_state_pre = 1;
+	}
+	//如果之前是释放状态，并且之前按下了按键
+	else if((temp_state == 0) && ((key_params[index].key_current_state & key_state_none) == 0))		
+	{
+		if(temp_state_pre == 1)		//如果之前是按下状态
+		{	
+			key_params[index].key_debounce_count = 0;
+		}
+		else if(temp_state_pre == 0)		//如果之前是释放状态
+		{
+			key_params[index].key_debounce_count++;				//消抖次数++
+			if(key_params[index].key_debounce_count >= key_params[index].key_debounce_threshold)
+			{
+				key_params[index].key_debounce_count = 0;
+				key_params[index].key_current_state |= key_state_up;		//释放
+
+				key_params[index].key_current_state &= key_state_none;		//写入空闲状态
+
+				if(key_params[index].key_double_state == 0)
+				{
+					key_params[index].key_double_state = 1;
+				}
+				else if(key_params[index].key_double_state == 1)
+				{
+					key_params[index].key_double_state = 2;
+				}				
+				else 
+				{
+					key_params[index].key_double_state = 2;
+				}
+			}
+		}
+		temp_state_pre = 0;
+	}
+	else if((temp_state == 0) && ((key_params[index].key_current_state & key_state_none) != 0))
+	{
+		key_params[index].key_debounce_count = 0;	
+		key_params[index].key_current_state &= key_state_none;		//写入空闲状态
+	}
+
+
+	if(key_params[index].key_double_state == 1)		
+	{
+		key_params[index].key_double_debounce_count++;
+		//大于阈值的话
+		if(key_params[index].key_double_debounce_count >= key_params[index].key_double_debounce_threhold)
+		{
+			key_params[index].key_double_state = 0;
+			key_params[index].key_double_debounce_count = 0;
+
+			key_params[index].key_current_state |= key_state_click;		//单击
+		}
+	}
+	else if(key_params[index].key_double_state == 2)	//如果是连续点击了两次的话
+	{
+			key_params[index].key_double_state = 0;
+			key_params[index].key_double_debounce_count = 0;
+
+			key_params[index].key_current_state |= key_state_double_click;		//双击
+	}	
+
+	return key_params[index].key_current_state;
 }
