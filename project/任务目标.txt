@@ -1,0 +1,78 @@
+## 6. 高强度项目1：工业物联网控制器
+
+### 6.1 项目目标
+
+做一个接近真实产品的 STM32 工业控制器：采集传感器，控制继电器/电机，通过 RS485/CAN 与现场设备通信，通过 Ethernet + lwIP + MQTT/HTTP 
+与上位机或云端通信，本地有日志、参数保存、看门狗和远程升级。
+
+这个项目最贴近 15K-25K 岗位，因为它覆盖驱动、RTOS、协议栈、稳定性和文档。
+
+### 6.2 推荐硬件
+
+- MCU：STM32F407 + LAN8720，或 NUCLEO-F429ZI / NUCLEO-F746ZG / STM32H743。
+- 通信：RS485模块、CAN收发器、以太网PHY或板载Ethernet。
+- 传感器：SHT31/BME280、光照传感器、模拟电压输入。
+- 执行器：继电器模块、PWM风扇或小电机。
+- 存储：W25Qxx SPI Flash 或 SD卡。
+- 调试：ST-Link、USB转串口、逻辑分析仪、示波器。
+
+### 6.3 功能清单
+
+- 传感器采集：温湿度、模拟量、电源电压的话，其实温湿度就挺不错的，光照强度也还行，烟雾浓度也是可以的，这三个传感器我都有，
+- 执行器控制：继电器、PWM风扇、报警蜂鸣器。
+- RS485 Modbus RTU：作为从站，支持读写寄存器。
+- CAN：周期上报状态，接收控制命令。
+- Ethernet + lwIP：DHCP/静态IP、TCP/UDP诊断。
+- MQTT：周期上报数据，接收配置命令。
+- HTTP Server：查看状态、修改参数、触发重启或升级。
+- 参数保存：设备ID、网络参数、阈值、校准系数。
+- 日志系统：运行日志、错误日志、复位原因。
+- 看门狗：任务级喂狗，某任务卡死后复位并记录原因。
+- OTA：HTTP 或 MQTT 分包升级，支持CRC校验。
+
+### 6.4 RTOS任务设计
+
+| 任务 | 优先级 | 周期/触发 | 职责 |
+|---|---:|---|---|
+| `sensor_task` | 中 | 500ms/1s | 读取I2C/ADC数据，滤波，发布采集事件 |
+| `control_task` | 中高 | 事件触发 | 根据阈值和远程命令控制继电器/PWM |
+| `modbus_task` | 中 | 串口IDLE触发 | 解析RS485帧，读写寄存器 |
+| `can_task` | 中 | 周期+中断 | 发送心跳，处理CAN控制帧 |
+| `net_task` | 高 | lwIP线程/事件 | 维护网络状态，处理TCP/MQTT/HTTP |
+| `storage_task` | 低 | 队列触发 | 保存参数、写日志、Flash磨损控制 |
+| `diag_task` | 低 | CLI命令 | 输出系统状态、任务栈、网络状态 |
+| `watchdog_task` | 高 | 200ms | 检查各任务心跳，统一喂狗 |
+
+### 6.5 软件模块
+
+- `bsp_gpio`、`bsp_uart`、`bsp_i2c`、`bsp_spi`、`bsp_can`、`bsp_eth`。
+- `drv_sht31`、`drv_w25qxx`、`drv_rs485`、`drv_relay`。
+- `app_sensor`、`app_control`、`app_protocol`、`app_network`、`app_ota`。
+- `middleware_modbus`、`middleware_mqtt`、`middleware_http`。
+- `sys_logger`、`sys_config`、`sys_watchdog`、`sys_fault`。
+
+### 6.6 必须考虑的异常
+
+- I2C传感器拔掉、SCL/SDA被拉低。
+- RS485收到半包、粘包、CRC错误、地址不匹配。
+- CAN总线关闭、过滤器配置错误、终端电阻缺失。
+- 网线插拔、DHCP失败、MQTT Broker断开、DNS失败。
+- Flash写入中断电，参数区损坏。
+- 某个RTOS任务死循环或栈溢出。
+- 升级包下载一半断网或断电。
+
+### 6.7 验收标准
+
+- 连续运行 72 小时不死机。
+- MQTT断网重连 100 次后仍能恢复。
+- Modbus错误帧压测 10000 帧不崩溃。
+- 参数保存断电测试 100 次不丢配置。
+- 看门狗复位后能记录是哪个任务超时。
+- README 包含架构图、任务表、协议说明、测试报告。
+
+### 6.8 简历写法
+
+可写：
+
+> 基于 STM32F4/F7 + FreeRTOS + lwIP 实现工业物联网控制器，完成 I2C/ADC/CAN/RS485/Ethernet 驱动、Modbus RTU、MQTT、HTTP配置页、
+参数持久化、任务级看门狗和OTA升级；设计多任务消息架构，支持断网重连、异常帧恢复和72小时稳定性测试。

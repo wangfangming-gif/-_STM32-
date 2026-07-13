@@ -1,0 +1,29 @@
+{
+    "files.associations": {
+        "sys.h": "c",
+        "stm32f4xx_hal.h": "c",
+        "stm32f4xx_hal_conf.h": "c",
+        "norflash.h": "c",
+        "spi.h": "c",
+        "led.h": "c",
+        "stm32f4xx_hal_spi.h": "c",
+        "usart_test.h": "c",
+        "modbus.h": "c",
+        "deque": "c",
+        "queue": "c",
+        "string": "c",
+        "vector": "c",
+        "array": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "utility": "c",
+        "wwdg.h": "c",
+        "dac.h": "c",
+        "adc.h": "c",
+        "stdio.h": "c",
+        "string.h": "c",
+        "light.h": "c",
+        "timer_capture.h": "c",
+        "timer.h": "c"
+    }
+}
