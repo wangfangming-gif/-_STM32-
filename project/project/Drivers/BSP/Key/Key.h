@@ -26,6 +26,18 @@
 
 #include "./SYSTEM/sys/sys.h"
 
+//单击回调函数
+typedef void (*key_click_callback_t)(uint8_t key_id);
+//双击回调函数
+typedef void (*key_double_click_callback_t)(uint8_t key_id);
+
+typedef enum
+{
+	KEY0 = 0,
+	KEY1 = 1,
+	KEY2 = 2,
+}MYKEY;
+
 typedef enum 
 {
 	key_state_none = 1,		//无
@@ -58,6 +70,10 @@ typedef struct
 	uint8_t key_double_debounce_count;			//双击间隔计数
 	uint8_t key_double_debounce_threhold;		//双击最大间隔
 }key_struct_params;
+
+
+void key_click_register_task(key_click_callback_t callback);
+void key_double_click_register_task(key_click_callback_t callback);
 
 
 

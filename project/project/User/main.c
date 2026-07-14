@@ -33,6 +33,12 @@ extern volatile uint16_t DHT11_Edge_Count;       //上升、下降沿数量
 
 volatile uint8_t usart_send_done = 0;	//发送结束标志位,1代表发送完成，0代表发送未完成
 
+static uint8_t main_nihao_print_buffer[30];
+uint8_t main_nihao_print_count = 0;
+
+void key_click_handle(uint8_t key_id);
+void key_double_click_handle(uint8_t key_id);
+
 int main(void)
 {
 	uint8_t hello_print_buffer[30] = {"nihaoa,shijie!!!!!"}; 
@@ -60,16 +66,37 @@ int main(void)
 	Timer6_RegisterTask(Light_TimerCallback,100);
 	Timer6_RegisterTask(DHT11_StartCapture_Callback,100);
 	Timer6_RegisterTask(bsp_key_10ms_scan,1);
+	key_click_register_task(key_click_handle);
+	key_double_click_register_task(key_double_click_handle);
 
 	//我想下哈，肯定先从简单的来，首先就是按键的编写，然后是串口的修改。
 	//接下来开始扫描的程序的编写
 
 	while (1)
 	{
-		// modbus_handle();
-//		 Light_Handle();
-		// DHT11_Loop_Handle();
+		 modbus_handle();
+		 Light_Handle();
+		 DHT11_Loop_Handle();
+	}
+}
 
+void key_click_handle(uint8_t key_id)
+{
+	if(key_id == KEY0)
+	{
+		main_nihao_print_count = sprintf((char *)main_nihao_print_buffer,
+		                        "KEY0_Click\r\n");
+		my_usart_transmit_data(main_nihao_print_buffer, main_nihao_print_count);
+	}
+}
+
+void key_double_click_handle(uint8_t key_id)
+{
+	if(key_id == KEY1)
+	{
+		main_nihao_print_count = sprintf((char *)main_nihao_print_buffer,
+		                        "KEY1_D_Click\r\n");
+		my_usart_transmit_data(main_nihao_print_buffer, main_nihao_print_count);
 	}
 }
 
