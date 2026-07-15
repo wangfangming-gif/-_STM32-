@@ -23,7 +23,20 @@
 #include "./BSP/Key/Key.h"
 #include "./BSP/Buzzer/Buzzer.h"
 
+#include "./BSP/IIC/IIC.h"
+
 #include <stdio.h>
+
+#define IIC_Address_Write 0xA0
+#define IIC_Address_Read 0xA1
+
+void temp_iic_write_data(void);
+uint8_t temp_iic_read_data(void);
+extern I2C_HandleTypeDef IIC1_handle;
+uint8_t Flag_IIC_SendDone = 0;
+uint8_t Flag_IIC_ReadDone = 0;
+
+
 
 volatile uint32_t temp_adc_value;
 unsigned char flag_adc_get_done;
@@ -54,6 +67,15 @@ int main(void)
 	key_gpio_init();	//初始化按键
 	key_soft_init();
 	buzzer_hardware_init();
+	IIC1_DMA_Init();		//初始化IIC，来对EEPROM进行一下操作
+
+	temp_iic_write_data();
+	HAL_Delay(5);
+//	temp_iic_read_data();
+	
+//	temp_iic_write_data();
+//	HAL_Delay(5);
+//	temp_iic_read_data();
 
 	//注册回调函数
 	Timer6_RegisterTask(Light_TimerCallback,100);
@@ -62,15 +84,75 @@ int main(void)
 	key_click_register_task(key_click_handle);
 	key_double_click_register_task(key_double_click_handle);
 
-	//我想下哈，肯定先从简单的来，首先就是按键的编写，然后是串口的修改。
-	//接下来开始扫描的程序的编写
-
+	
 	while (1)
 	{
 		 modbus_handle();
 		 Light_Handle();
 		 DHT11_Loop_Handle();
 	}
+	
+}
+
+
+//IIC写操作
+void temp_iic_write_data(void)
+{
+
+	static uint8_t IIC_write_buffer[9] = "helloworl";
+	IIC_write_buffer[8] = '\0';
+	Flag_IIC_SendDone = 0;
+	HAL_I2C_Mem_Write_DMA(&IIC1_handle,
+										IIC_Address_Write,
+										0x00,
+										I2C_MEMADD_SIZE_8BIT,
+										IIC_write_buffer,
+										6);
+//	HAL_I2C_Master_Transmit_DMA(&IIC1_handle,IIC_Address_Write,IIC_write_buffer,6);
+	while(!Flag_IIC_SendDone)	//等待写入完成
+	{
+	
+	}
+	Flag_IIC_SendDone = 0;
+}
+
+//IIC读操作
+uint8_t temp_iic_read_data(void)
+{
+	static uint8_t iic_read_write_address[2];
+	iic_read_write_address[0] = 0x01;
+	static uint8_t IIC_Read_buffer[9];
+//
+//	HAL_I2C_Master_Transmit_DMA(&IIC1_handle,IIC_Address_Write,iic_read_write_address,1);
+//	Flag_IIC_SendDone = 0;
+//	while(!Flag_IIC_SendDone)	//等待写入完成
+//	{
+//	
+//	}
+//	Flag_IIC_SendDone = 0;
+	Flag_IIC_ReadDone =0;
+
+
+	HAL_I2C_Mem_Read_DMA(&IIC1_handle,
+								IIC_Address_Read,
+								0x00,
+								I2C_MEMADD_SIZE_8BIT,
+								IIC_Read_buffer,
+								8);
+
+	while(!Flag_IIC_ReadDone)	//等待写入完成
+	{
+	
+	}
+	Flag_IIC_ReadDone = 0;
+	
+	IIC_Read_buffer[8] = '\0';
+	
+	main_nihao_print_count = sprintf((char *)main_nihao_print_buffer,
+													"IIC_D:%s\r\n",IIC_Read_buffer);
+	my_usart_transmit_data(main_nihao_print_buffer, main_nihao_print_count);
+
+	return 0;
 }
 
 void key_click_handle(uint8_t key_id)

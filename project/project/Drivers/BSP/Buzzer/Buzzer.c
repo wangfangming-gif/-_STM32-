@@ -6,6 +6,8 @@ GPIO_InitTypeDef buzzer_gpio_init;
 void buzzer_hardware_init(void)
 {
 	BUZZER_RCC;	//使能时钟
+
+	
 	buzzer_gpio_init.Mode = GPIO_MODE_OUTPUT_PP;
 	buzzer_gpio_init.Pin = BUZZER_PIN;
 	buzzer_gpio_init.Pull = GPIO_PULLDOWN;	//下拉

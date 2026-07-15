@@ -3,8 +3,8 @@
 
 #include "./SYSTEM/sys/sys.h"
 
-#define BUZZER_RCC __HAL_RCC_GPIOA_CLK_ENABLE()
-#define BUZZER_GPIO GPIOA
+#define BUZZER_RCC __HAL_RCC_GPIOF_CLK_ENABLE()
+#define BUZZER_GPIO GPIOF
 #define BUZZER_PIN GPIO_PIN_8
 
 //´ò¿ª·äÃùÆ÷
