@@ -21,6 +21,7 @@
 #include "./BSP/Timer_Capture/timer_capture.h"
 
 #include "./BSP/Key/Key.h"
+#include "./BSP/Buzzer/Buzzer.h"
 
 #include <stdio.h>
 
@@ -41,15 +42,6 @@ void key_double_click_handle(uint8_t key_id);
 
 int main(void)
 {
-	uint8_t hello_print_buffer[30] = {"nihaoa,shijie!!!!!"}; 
-
-	static uint8_t temp_printf_buffer[30];
-	uint8_t temp_printf_count = 0;
-
-	uint8_t key_pre_state = 0;
-	GPIO_PinState key_current_state = GPIO_PIN_SET;	
-	GPIO_PinState Temp_key_state = GPIO_PIN_SET;	
-
 	HAL_Init();
 	sys_stm32_clock_init(336, 8, 2, 7);
 	delay_init(168);
@@ -61,6 +53,7 @@ int main(void)
 	Light_Init();		//初始化光强
 	key_gpio_init();	//初始化按键
 	key_soft_init();
+	buzzer_hardware_init();
 
 	//注册回调函数
 	Timer6_RegisterTask(Light_TimerCallback,100);

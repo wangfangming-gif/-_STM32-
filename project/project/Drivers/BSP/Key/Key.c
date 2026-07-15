@@ -35,10 +35,6 @@
 
 GPIO_InitTypeDef led_gpio_init_struct;
 
-static uint8_t key_temp_printf_buffer[30];
-uint8_t key_temp_printf_count = 0;
-
-
 //按键参数结构体初始化
 key_struct_params key_params[KEY_NUMBER];
 
