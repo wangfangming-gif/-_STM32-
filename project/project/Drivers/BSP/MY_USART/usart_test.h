@@ -31,7 +31,6 @@ void usart_test_dma_init(uint32_t Temp_BaudRate);
 void modbus_loop_buffer_init(void);
 uint8_t modbus_loop_buffer_read(uint8_t *data);
 uint16_t modbus_loop_buffer_available(void);
-void my_usart_transmit_data(uint8_t *data,uint16_t len);
 
 
 //-------------------------------------·¢ËÍFIFO-------------------------------------------------

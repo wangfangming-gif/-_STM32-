@@ -72,18 +72,14 @@ int main(void)
 	Timer6_RegisterTask(DHT11_StartCapture_Callback,100);
 	Timer6_RegisterTask(bsp_key_10ms_scan,1);
 	Timer6_RegisterTask(uart_send_check,1);
+
 	key_click_register_task(key_click_handle);
 	key_double_click_register_task(key_double_click_handle);
 	
 
-	temp_iic_write_data();
-	HAL_Delay(5);
-	temp_iic_read_data();
-	
-	temp_iic_write_data();
-	HAL_Delay(5);
-	temp_iic_read_data();
-
+//	temp_iic_write_data();
+//	HAL_Delay(10);
+//	temp_iic_read_data();
 	
 	while (1)
 	{
@@ -91,14 +87,14 @@ int main(void)
 		 Light_Handle();
 		 DHT11_Loop_Handle();
 	}
-	
 }
+
+
 
 
 //IIC写操作
 void temp_iic_write_data(void)
 {
-
 	static uint8_t IIC_write_buffer[9] = "helloworl";
 	IIC_write_buffer[0] = 0x00;
 	IIC_write_buffer[8] = '\0';
@@ -119,14 +115,13 @@ uint8_t temp_iic_read_data(void)
 	static uint8_t IIC_Read_buffer[9];
 	Flag_IIC_ReadDone =0;
 
-
 	HAL_I2C_Mem_Read_DMA(&IIC1_handle,
 								IIC_Address_Read,
 								0x00,
 								I2C_MEMADD_SIZE_8BIT,
 								IIC_Read_buffer,
 								8);
-
+								
 	while(!Flag_IIC_ReadDone)	//等待写入完成
 	{
 	

@@ -166,11 +166,11 @@ void bsp_key_10ms_scan(void)
 
 		if(my_key_state & key_state_down) //°´ÏÂ
 		{
-			key_params[1].key_current_state &= ~key_state_down;
+			key_params[temp_index].key_current_state &= ~key_state_down;
 		}
 		if(my_key_state & key_state_up)	//µ¯Æğ
 		{
-			key_params[1].key_current_state &= ~key_state_up;
+			key_params[temp_index].key_current_state &= ~key_state_up;
 		}
 	}
 }

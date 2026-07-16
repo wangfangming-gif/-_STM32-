@@ -7,75 +7,10 @@ I2C_HandleTypeDef IIC1_handle;
 DMA_HandleTypeDef IIC1_TX_DMAHandle;
 DMA_HandleTypeDef IIC1_RX_DMAHandle;
 
-
 extern uint8_t Flag_IIC_SendDone;
 extern uint8_t Flag_IIC_ReadDone;
 
-
-/*
-	1、使用IIC的阻塞函数来读取IIC的数据
-	IIC1_Init();																			//IIC进行初始化
-	//首先发送A0,也就是写入
-	if (HAL_I2C_Master_Transmit(&IIC1_handle, IIC_Target_Address, 
-	IIC_write_buffer, IIC_write_count, 1000) != HAL_OK)
-	{
-
-	}
-
-	//等待IIC全部写完
-	while (HAL_I2C_GetState(&IIC1_handle) != HAL_I2C_STATE_READY)
-	{
-	}
-
-	//接下来我们开始读取数据
-	if(HAL_I2C_Master_Receive(&IIC1_handle,IIC_Read_Address,IIC_Read_buffer,1,1000) != HAL_OK)
-	{
-		printf("IIC接收失败!");
-	}
-	else
-	{
-		printf("IIC接收成功!");
-	}
-	2、使用中断式的IIC来收发IIC数据
-	IIC1_IT_Init();
-	
-	HAL_I2C_Master_Transmit_IT(&IIC1_handle, IIC_Target_Address, 
-		IIC_write_buffer, 1);
-	Flag_IIC_SendDone 	= 0;
-	while (Flag_IIC_SendDone == 0)
-	{
-	}
-//	printf("IIC发送成功！");
-	
-	HAL_I2C_Master_Receive_IT(&IIC1_handle, IIC_Read_Address, 
-		IIC_Read_buffer, 1);
-	Flag_IIC_ReadDone 	= 0;
-
-	while (IIC_Read_Address == 0)
-	{
-	}
-	
-	printf("IIC接收成功！");
-	3、使用DMA来传输IIC的数据
-	
-	IIC1_DMA_Init();
-
-	HAL_I2C_Master_Transmit_DMA(&IIC1_handle,IIC_Target_Address,
-	IIC_write_buffer,1);
-	Flag_IIC_SendDone = 0;
-	while(Flag_IIC_SendDone == 0)
-	{
-	}
-
-	HAL_I2C_Master_Receive_DMA(&IIC1_handle,IIC_Read_Address,
-	IIC_Read_buffer,1);
-	Flag_IIC_ReadDone = 0;
-	while(Flag_IIC_ReadDone == 0)
-	{
-	}
-
-	printf("IIC接收成功!");
-*/
+static at24c02_data_struct at24c02_params;
 
 void IIC1_Init(void)
 {
@@ -205,6 +140,22 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef *hi2c)
 	HAL_NVIC_SetPriority(I2C1_ER_IRQn,1,1);
 	HAL_NVIC_EnableIRQ(I2C1_ER_IRQn);
 	}
+}
+
+uint8_t AT24C02_Write_Data(uint16_t DeviceAddress,
+																	uint16_t Registeraddress,
+																	uint8_t *Data,
+																	uint16_t len)
+{
+	if((len > AT24C02_SINGLE_WRITE_MAXBYTE) || (at24c02_params.state))
+	{
+
+	}
+}
+
+uint8_t AT24C02_Read_Data()
+{
+
 }
 
 
