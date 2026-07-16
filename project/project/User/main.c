@@ -45,8 +45,6 @@ uint8_t Light_Loop_Time = 10;
 extern volatile uint8_t DHT11_Capture_Done;      //捕获完成
 extern volatile uint16_t DHT11_Edge_Count;       //上升、下降沿数量
 
-volatile uint8_t usart_send_done = 0;	//发送结束标志位,1代表发送完成，0代表发送未完成
-
 static uint8_t main_nihao_print_buffer[30];
 uint8_t main_nihao_print_count = 0;
 
@@ -69,20 +67,22 @@ int main(void)
 	buzzer_hardware_init();
 	IIC1_DMA_Init();		//初始化IIC，来对EEPROM进行一下操作
 
-	temp_iic_write_data();
-	HAL_Delay(5);
-//	temp_iic_read_data();
-	
-//	temp_iic_write_data();
-//	HAL_Delay(5);
-//	temp_iic_read_data();
-
-	//注册回调函数
+		//注册回调函数
 	Timer6_RegisterTask(Light_TimerCallback,100);
 	Timer6_RegisterTask(DHT11_StartCapture_Callback,100);
 	Timer6_RegisterTask(bsp_key_10ms_scan,1);
+	Timer6_RegisterTask(uart_send_check,1);
 	key_click_register_task(key_click_handle);
 	key_double_click_register_task(key_double_click_handle);
+	
+
+	temp_iic_write_data();
+	HAL_Delay(5);
+	temp_iic_read_data();
+	
+	temp_iic_write_data();
+	HAL_Delay(5);
+	temp_iic_read_data();
 
 	
 	while (1)
@@ -100,18 +100,13 @@ void temp_iic_write_data(void)
 {
 
 	static uint8_t IIC_write_buffer[9] = "helloworl";
+	IIC_write_buffer[0] = 0x00;
 	IIC_write_buffer[8] = '\0';
 	Flag_IIC_SendDone = 0;
-	HAL_I2C_Mem_Write_DMA(&IIC1_handle,
-										IIC_Address_Write,
-										0x00,
-										I2C_MEMADD_SIZE_8BIT,
-										IIC_write_buffer,
-										6);
-//	HAL_I2C_Master_Transmit_DMA(&IIC1_handle,IIC_Address_Write,IIC_write_buffer,6);
+	HAL_I2C_Master_Transmit_DMA(&IIC1_handle,IIC_Address_Write,IIC_write_buffer,6);
 	while(!Flag_IIC_SendDone)	//等待写入完成
 	{
-	
+		
 	}
 	Flag_IIC_SendDone = 0;
 }
@@ -122,14 +117,6 @@ uint8_t temp_iic_read_data(void)
 	static uint8_t iic_read_write_address[2];
 	iic_read_write_address[0] = 0x01;
 	static uint8_t IIC_Read_buffer[9];
-//
-//	HAL_I2C_Master_Transmit_DMA(&IIC1_handle,IIC_Address_Write,iic_read_write_address,1);
-//	Flag_IIC_SendDone = 0;
-//	while(!Flag_IIC_SendDone)	//等待写入完成
-//	{
-//	
-//	}
-//	Flag_IIC_SendDone = 0;
 	Flag_IIC_ReadDone =0;
 
 
@@ -150,7 +137,7 @@ uint8_t temp_iic_read_data(void)
 	
 	main_nihao_print_count = sprintf((char *)main_nihao_print_buffer,
 													"IIC_D:%s\r\n",IIC_Read_buffer);
-	my_usart_transmit_data(main_nihao_print_buffer, main_nihao_print_count);
+	uart_send_data(main_nihao_print_buffer, main_nihao_print_count);
 
 	return 0;
 }
@@ -161,7 +148,7 @@ void key_click_handle(uint8_t key_id)
 	{
 		main_nihao_print_count = sprintf((char *)main_nihao_print_buffer,
 		                        "KEY0_Click\r\n");
-		my_usart_transmit_data(main_nihao_print_buffer, main_nihao_print_count);
+		uart_send_data(main_nihao_print_buffer, main_nihao_print_count);
 	}
 }
 
@@ -171,7 +158,7 @@ void key_double_click_handle(uint8_t key_id)
 	{
 		main_nihao_print_count = sprintf((char *)main_nihao_print_buffer,
 		                        "KEY1_D_Click\r\n");
-		my_usart_transmit_data(main_nihao_print_buffer, main_nihao_print_count);
+		uart_send_data(main_nihao_print_buffer, main_nihao_print_count);
 	}
 }
 

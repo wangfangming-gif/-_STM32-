@@ -1,6 +1,9 @@
 #include "./BSP/MY_USART/usart_test.h"
 #include "./BSP/LED/led.h"
 
+#include <string.h>
+
+
 UART_HandleTypeDef usart_handle;
 DMA_HandleTypeDef usart_rx_handle;
 DMA_HandleTypeDef usart_tx_handle;
@@ -13,7 +16,26 @@ uint8_t usart_rx_buffer[tx_rx_buffercount];
 uint32_t usart_rx_count;
 uint8_t flag_usart_rx_done;
 
-extern volatile uint8_t usart_send_done;	//发送结束标志位,1代表发送完成，0代表发送未完成
+volatile uint8_t usart_send_done = 0;	//发送结束标志位,1代表发送完成，0代表发送未完成
+
+#define UART_SEND_BUFFER_SIZE        512
+#define UART_SEND_COUNT_SIZE         64
+#define UART_DMA_SEND_BUFFER_SIZE    256
+
+static uart_send_struct uart_send_fifo;
+
+static uint8_t uart_send_buffer[UART_SEND_BUFFER_SIZE];
+static uint16_t uart_send_count_buffer[UART_SEND_COUNT_SIZE];
+static uint8_t uart_dma_send_buffer[UART_DMA_SEND_BUFFER_SIZE];
+
+
+static uint16_t send_loop_buffer_data_free(uart_send_struct *temp_value);
+static uint16_t send_loop_buffer_count_free(uart_send_struct *temp_value);
+static uint8_t send_loop_buffer_count_empty(uart_send_struct *temp_value);
+static void uart_send_enter_critical(void);
+static void uart_send_exit_critical(void);
+
+
 
 
 /*串口初始化*/
@@ -149,6 +171,209 @@ void my_usart_transmit_data(uint8_t *data,uint16_t len)
 	return;
 }
 
+
+//-------------------------------------发送FIFO-------------------------------------------------
+
+static void uart_send_enter_critical(void)
+{
+	__disable_irq();
+}
+
+static void uart_send_exit_critical(void)
+{
+	__enable_irq();
+}
+
+void uart_send_fifo_init(void)
+{
+	usart_send_done = 0;
+
+	send_loop_buffer_init(&uart_send_fifo,
+												uart_send_buffer,
+												UART_SEND_BUFFER_SIZE,
+												uart_send_count_buffer,
+												UART_SEND_COUNT_SIZE);
+}
+
+uint8_t uart_send_data(uint8_t *data, uint16_t len)
+{
+	return send_loop_buffer_push(&uart_send_fifo, data, len);
+}
+
+uint8_t uart_send_string(char *str)
+{
+	if(str == 0)
+	{
+		return 0;
+	}
+
+	return uart_send_data((uint8_t *)str, strlen(str));
+}
+
+void uart_send_check(void)
+{
+	uint16_t len;
+
+	if(usart_send_done)
+	{
+		return;
+	}
+
+	len = send_loop_buffer_pop(&uart_send_fifo, uart_dma_send_buffer);
+	if(len == 0)
+	{
+		return;
+	}
+
+	usart_send_done = 1;
+
+	if(HAL_UART_Transmit_DMA(&usart_handle, uart_dma_send_buffer, len) != HAL_OK)
+	{
+		usart_send_done = 0;
+	}
+}
+
+
+
+void send_loop_buffer_init(uart_send_struct *temp_value,
+													 uint8_t *temp_buffer,
+													 uint16_t temp_buffer_size,
+													 uint16_t *temp_buffer_count,
+													 uint16_t temp_buffercount_size)
+{
+	temp_value->buffer = temp_buffer;
+	temp_value->size = temp_buffer_size;
+	temp_value->head = 0;
+	temp_value->tail = 0;
+
+	temp_value->buffercount = temp_buffer_count;
+	temp_value->buffercount_size = temp_buffercount_size;
+	temp_value->buffercount_head = 0;
+	temp_value->buffercount_tail = 0;
+}
+
+static uint16_t send_loop_buffer_data_free(uart_send_struct *temp_value)
+{
+	if(temp_value->head >= temp_value->tail)
+	{
+		return temp_value->size - (temp_value->head - temp_value->tail) - 1;
+	}
+	else
+	{
+		return temp_value->tail - temp_value->head - 1;
+	}
+}
+
+static uint16_t send_loop_buffer_count_free(uart_send_struct *temp_value)
+{
+	if(temp_value->buffercount_head >= temp_value->buffercount_tail)
+	{
+		return temp_value->buffercount_size - (temp_value->buffercount_head - temp_value->buffercount_tail) - 1;
+	}
+	else
+	{
+		return temp_value->buffercount_tail - temp_value->buffercount_head - 1;
+	}
+}
+
+static uint8_t send_loop_buffer_count_empty(uart_send_struct *temp_value)
+{
+	if(temp_value->buffercount_head == temp_value->buffercount_tail)
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
+uint8_t send_loop_buffer_push(uart_send_struct *temp_value, uint8_t *buffer, uint16_t count)
+{
+	uint16_t i;
+
+	if((temp_value == 0) || (buffer == 0) || (count == 0))
+	{
+		return 0;
+	}
+
+	if(count > UART_DMA_SEND_BUFFER_SIZE)
+	{
+		return 0;
+	}
+
+	uart_send_enter_critical();
+
+	if((send_loop_buffer_data_free(temp_value) < count) || (send_loop_buffer_count_free(temp_value) == 0))
+	{
+		uart_send_exit_critical();
+		return 0;
+	}
+
+	for(i = 0; i < count; i++)
+	{
+		temp_value->buffer[temp_value->head] = buffer[i];
+		temp_value->head++;
+		if(temp_value->head >= temp_value->size)
+		{
+			temp_value->head = 0;
+		}
+	}
+
+	temp_value->buffercount[temp_value->buffercount_head] = count;
+	temp_value->buffercount_head++;
+	if(temp_value->buffercount_head >= temp_value->buffercount_size)
+	{
+		temp_value->buffercount_head = 0;
+	}
+
+	uart_send_exit_critical();
+
+	return 1;
+}
+
+uint16_t send_loop_buffer_pop(uart_send_struct *temp_value, uint8_t *buffer)
+{
+	uint16_t i;
+	uint16_t count;
+
+	if((temp_value == 0) || (buffer == 0))
+	{
+		return 0;
+	}
+
+	uart_send_enter_critical();
+
+	if(send_loop_buffer_count_empty(temp_value))
+	{
+		uart_send_exit_critical();
+		return 0;
+	}
+
+	count = temp_value->buffercount[temp_value->buffercount_tail];
+	temp_value->buffercount_tail++;
+	if(temp_value->buffercount_tail >= temp_value->buffercount_size)
+	{
+		temp_value->buffercount_tail = 0;
+	}
+
+	for(i = 0; i < count; i++)
+	{
+		buffer[i] = temp_value->buffer[temp_value->tail];
+		temp_value->tail++;
+		if(temp_value->tail >= temp_value->size)
+		{
+			temp_value->tail = 0;
+		}
+	}
+
+	uart_send_exit_critical();
+
+	return count;
+}
+
+
+
+//-------------------------------------接收FIFO-------------------------------------------------
+
 //首先是环形缓冲区的初始化
 void loop_buffer_init(uart_receive_struct *temp_value,uint8_t *temp_buffer,uint16_t temp_size)
 {
@@ -255,8 +480,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart->Instance == USART1)		//如果是USART1的话
 	{
-		usart_send_done = 1;
-		//因为不是485，所以我们发送完毕之后没有必要进入这里，这里就先空着
+		usart_send_done = 0;
 	}
 }
 

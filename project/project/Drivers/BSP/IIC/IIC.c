@@ -238,17 +238,17 @@ void I2C1_EV_IRQHandler(void)
 	 }
  }
 
-//
-// //发送完毕回调函数
-// void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
-// {
-// 	//如果是IIC1的话
-// 	if(hi2c->Instance == I2C1)
-// 	{
-// 		Flag_IIC_SendDone = 1;
-// 	}
-// }
-// 
+
+ //发送完毕回调函数
+ void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
+ {
+ 	//如果是IIC1的话
+ 	if(hi2c->Instance == I2C1)
+ 	{
+ 		Flag_IIC_SendDone = 1;
+ 	}
+ }
+ 
 // //接收完毕回调函数
 // void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 // {
@@ -257,28 +257,23 @@ void I2C1_EV_IRQHandler(void)
 // 	{
 // 		Flag_IIC_ReadDone = 1;
 // 	}
-// 
 // }
 
-void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef *hi2c)
-{
- 	//如果是IIC1的话
- 	if(hi2c->Instance == I2C1)
- 	{
- 		Flag_IIC_SendDone = 1;
- 		 		HAL_DMA_Abort_IT(hi2c->hdmatx);
- 	}
-
-}
+//void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef *hi2c)
+//{
+// 	//如果是IIC1的话
+// 	if(hi2c->Instance == I2C1)
+// 	{
+// 		Flag_IIC_SendDone = 1;
+// 	}
+//}
 void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
  	//如果是IIC1的话
  	if(hi2c->Instance == I2C1)
  	{
  		Flag_IIC_ReadDone = 1;
- 		 		HAL_DMA_Abort_IT(hi2c->hdmatx);
  	}
-
 }
 
 

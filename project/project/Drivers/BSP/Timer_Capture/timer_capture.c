@@ -14,7 +14,6 @@ volatile uint16_t DHT11_Edge_Count = 0;  // 上升、下降沿数量
 static volatile uint16_t DHT11_Last_Capture = 0;
 static volatile uint8_t DHT11_Capture_Started = 0;
 
-extern volatile uint8_t usart_send_done; // 发送结束标志位,1代表发送完成，0代表发送未完成
 uint8_t Timer_Wait_DHT11Back_HandleFlag = 0;
 
 void DHT11_Wait_DataBack(void);
@@ -250,6 +249,6 @@ void DHT11_Loop_Handle(void)
         nihao_print_count = sprintf((char *)nihao_print_buffer,
                                     "Temp:%d , Humi:%d\r\n",
                                     main_temp, main_humi);
-        my_usart_transmit_data(nihao_print_buffer, nihao_print_count);
+        uart_send_data(nihao_print_buffer, nihao_print_count);
     }
 }

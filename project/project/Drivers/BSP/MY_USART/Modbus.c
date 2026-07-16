@@ -1,6 +1,7 @@
 #include "./BSP/MY_USART/Modbus.h"
 #include "./BSP/MY_USART/usart_test.h"
 
+
 uint8_t modbus_handle_buffer[128];
 uint16_t modbus_receive_count;
 uint8_t modbus_receive_flag_done;
@@ -10,6 +11,7 @@ void modbus_init(void)
 	modbus_loop_buffer_init();
 	//硬件上也初始化一下
 	usart_test_dma_init(9600);
+	uart_send_fifo_init();
 }
 
 void modbus_handle(void)
@@ -26,7 +28,8 @@ void modbus_handle(void)
 		{
 			modbus_loop_buffer_read(&modbus_handle_buffer[temp_count]);
 		}
-		my_usart_transmit_data(modbus_handle_buffer,modbus_receive_count);
+		uart_send_data(modbus_handle_buffer,modbus_receive_count);
+//		my_usart_transmit_data(modbus_handle_buffer,modbus_receive_count);
 	}
 	else
 	{

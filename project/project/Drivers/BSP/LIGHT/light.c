@@ -36,7 +36,7 @@ void Light_Handle(void)
 		temp_printf_count = sprintf((char *)temp_printf_buffer,
 			"Light:%d\r\n",
 		light_adc_buffer[0]);
-		my_usart_transmit_data(temp_printf_buffer,temp_printf_count);
+		uart_send_data(temp_printf_buffer,temp_printf_count);
 		light_sample_done = 0;
 	}
 }
